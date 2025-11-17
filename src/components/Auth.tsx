@@ -20,7 +20,16 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
             return;
         }
 
-        const users = JSON.parse(localStorage.getItem('users') || '{}');
+        let users: { [key: string]: string } = {};
+        try {
+            users = JSON.parse(localStorage.getItem('users') || '{}');
+        } catch (err) {
+            console.error("Failed to parse users from localStorage:", err);
+            localStorage.removeItem('users'); // Clear corrupted data
+            setError('حدث خطأ في قراءة بيانات المستخدمين. الرجاء المحاولة مرة أخرى.');
+            return;
+        }
+
 
         if (isLoginView) {
             // Login logic

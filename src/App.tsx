@@ -38,8 +38,14 @@ const themes: Record<ThemeName, Theme> = {
 
 const App: React.FC = () => {
     const [currentUser, setCurrentUser] = useState<User | null>(() => {
-        const storedUser = localStorage.getItem('currentUser');
-        return storedUser ? JSON.parse(storedUser) : null;
+        try {
+            const storedUser = localStorage.getItem('currentUser');
+            return storedUser ? JSON.parse(storedUser) : null;
+        } catch (error) {
+            console.error("Failed to parse currentUser from localStorage:", error);
+            localStorage.removeItem('currentUser');
+            return null;
+        }
     });
     const [activeTab, setActiveTab] = useState<Tab>('reminders');
     
@@ -71,10 +77,18 @@ const App: React.FC = () => {
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             const userData = localStorage.getItem(`data_${currentUser.username}`);
             if (userData) {
-                const parsedData = JSON.parse(userData);
-                setReminders(parsedData.reminders || []);
-                setSchedules(parsedData.schedules || []);
-                setTheme(parsedData.theme || 'sky');
+                try {
+                    const parsedData = JSON.parse(userData);
+                    setReminders(parsedData.reminders || []);
+                    setSchedules(parsedData.schedules || []);
+                    setTheme(parsedData.theme || 'sky');
+                } catch (error) {
+                    console.error(`Failed to parse data for user ${currentUser.username}:`, error);
+                    localStorage.removeItem(`data_${currentUser.username}`); // Clear corrupted data
+                    setReminders([]);
+                    setSchedules([]);
+                    setTheme('sky');
+                }
             } else {
                 setReminders([]);
                 setSchedules([]);
