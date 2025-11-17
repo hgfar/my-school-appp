@@ -30,7 +30,6 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
             return;
         }
 
-
         if (isLoginView) {
             // Login logic
             if (users[username] && users[username] === password) {
