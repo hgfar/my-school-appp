@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 // FIX: Using absolute path from src root assuming baseUrl is configured.
 // FIX: Changed import path to be relative and using 'import type'.
-import type { User } from '../types';
+// Fix: Added .ts extension to the types import to fix module resolution error.
+import type { User } from '../types.ts';
 
 interface AuthProps {
     onLoginSuccess: (user: User) => void;

@@ -1,7 +1,8 @@
 import React from 'react';
 // FIX: Using absolute path from src root assuming baseUrl is configured.
 // FIX: Changed import path to be relative.
-import type { Tab, Theme } from '../types';
+// Fix: Added .ts extension to the types import to fix module resolution error.
+import type { Tab, Theme } from '../types.ts';
 import { BellIcon } from './icons/BellIcon';
 import { CalendarIcon } from './icons/CalendarIcon';
 import { BookIcon } from './icons/BookIcon';
