@@ -22,7 +22,8 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
 
         let users: { [key: string]: string } = {};
         try {
-            users = JSON.parse(localStorage.getItem('users') || '{}');
+            const storedUsers = localStorage.getItem('users');
+            users = storedUsers ? JSON.parse(storedUsers) : {};
         } catch (err) {
             console.error("Failed to parse users from localStorage:", err);
             localStorage.removeItem('users'); // Clear corrupted data
