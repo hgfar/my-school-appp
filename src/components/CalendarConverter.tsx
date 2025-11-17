@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { getTodaysHijriDate, convertGregorianToHijri, convertHijriToGregorian } from '../services/geminiService';
-import type { ConvertedDate, Theme } from '../types';
+// FIX: Using absolute path from src root assuming baseUrl is configured.
+import { getTodaysHijriDate, convertGregorianToHijri, convertHijriToGregorian } from 'services/geminiService';
+// FIX: Using absolute path from src root assuming baseUrl is configured.
+import type { ConvertedDate, Theme } from 'types';
 
 interface CalendarConverterProps {
     theme: Theme;

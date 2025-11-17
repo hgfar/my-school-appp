@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import type { AllSchedules, ChildSchedule, Reminder, Theme } from '../types';
+// FIX: Using absolute path from src root assuming baseUrl is configured.
+import type { AllSchedules, ChildSchedule, Reminder, Theme } from 'types';
 
 interface SchoolScheduleProps {
     schedules: AllSchedules;

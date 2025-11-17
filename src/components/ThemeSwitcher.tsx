@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import type { ThemeName, Theme } from '../types';
+// FIX: Using absolute path from src root assuming baseUrl is configured.
+import type { ThemeName, Theme } from 'types';
 import { PaletteIcon } from './icons/PaletteIcon';
 
 interface ThemeSwitcherProps {

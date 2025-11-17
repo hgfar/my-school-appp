@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { User } from '../types';
+// FIX: Using absolute path from src root assuming baseUrl is configured.
+import { User } from 'types';
 
 interface AuthProps {
     onLoginSuccess: (user: User) => void;

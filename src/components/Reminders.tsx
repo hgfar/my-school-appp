@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Reminder, Theme } from '../types';
-import { notificationOptions } from '../assets/notificationOptions';
+// FIX: Using absolute path from src root assuming baseUrl is configured.
+import { Reminder, Theme } from 'types';
+// FIX: Using absolute path from src root assuming baseUrl is configured.
+import { notificationOptions } from 'assets/notificationOptions';
 
 interface RemindersProps {
   reminders: Reminder[];

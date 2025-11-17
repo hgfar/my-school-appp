@@ -1,5 +1,6 @@
 import React from 'react';
-import type { Tab, Theme } from '../types';
+// FIX: Using absolute path from src root assuming baseUrl is configured.
+import type { Tab, Theme } from 'types';
 import { BellIcon } from './icons/BellIcon';
 import { CalendarIcon } from './icons/CalendarIcon';
 import { BookIcon } from './icons/BookIcon';
