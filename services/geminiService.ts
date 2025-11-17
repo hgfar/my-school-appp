@@ -1,6 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 // FIX: Using absolute path from src root assuming baseUrl is configured.
-import type { ConvertedDate } from 'types';
+// FIX: Changed import path to be relative.
+import type { ConvertedDate } from '../types';
 
 // The API key is assumed to be available in the environment as process.env.API_KEY
 // The constructor will handle the key. A check here can crash the app.
