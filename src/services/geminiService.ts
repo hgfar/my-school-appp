@@ -39,7 +39,7 @@ const callGeminiWithSchema = async <T,>(prompt: string, schema: any): Promise<T>
       },
     });
 
-    const jsonString = response.text.trim();
+    const jsonString = response.text?.trim();
     if (!jsonString) {
       throw new Error("Empty response from API");
     }

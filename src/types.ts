@@ -1,5 +1,3 @@
-import { ReactNode } from "react";
-
 export type Tab = 'reminders' | 'schoolSchedule' | 'calendar';
 
 export interface Reminder {
