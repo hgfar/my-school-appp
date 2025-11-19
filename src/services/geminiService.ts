@@ -1,11 +1,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
-// FIX: Using absolute path from src root assuming baseUrl is configured.
-// FIX: Changed import path to be relative.
-// FIX: Added .ts extension to fix module resolution issue.
-import type { ConvertedDate } from '../types.ts';
+import type { ConvertedDate } from '../types';
 
 // The API key is assumed to be available in the environment as process.env.API_KEY
-// The constructor will handle the key. A check here can crash the app.
+// The constructor will handle the key.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const todayHijriResponseSchema = {
@@ -42,8 +39,8 @@ const callGeminiWithSchema = async <T,>(prompt: string, schema: any): Promise<T>
       },
     });
 
-    // FIX: According to Gemini API guidelines, response.text is always a string.
-    const jsonString = response.text.trim();
+    const jsonString = response.text ? response.text.trim() : "";
+    
     if (!jsonString) {
       throw new Error("Empty response from API");
     }

@@ -1,8 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-// FIX: Using absolute path from src root assuming baseUrl is configured.
-// FIX: Changed import path to be relative.
-// Fix: Added .ts extension to the types import to fix module resolution error.
-import type { ConvertedDate } from '../types.ts';
+import type { ConvertedDate } from '../types';
 
 // The API key is assumed to be available in the environment as process.env.API_KEY
 // The constructor will handle the key. A check here can crash the app.

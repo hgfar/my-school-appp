@@ -1,8 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-// FIX: Using absolute path from src root assuming baseUrl is configured.
-// FIX: Changed import path to be relative.
-// FIX: Added .ts extension to fix module resolution issue.
-import type { ThemeName, Theme } from '../types.ts';
+import type { ThemeName, Theme } from '../types';
 import { PaletteIcon } from './icons/PaletteIcon';
 
 interface ThemeSwitcherProps {
