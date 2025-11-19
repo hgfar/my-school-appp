@@ -1,8 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { ConvertedDate } from '../types';
 
-// The API key is assumed to be available in the environment as process.env.API_KEY
-// The constructor will handle the key.
+// The API key is injected by Vite's define plugin at build time.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const todayHijriResponseSchema = {
