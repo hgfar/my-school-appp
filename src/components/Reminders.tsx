@@ -4,7 +4,7 @@ import { notificationOptions } from '../assets/notificationOptions';
 
 interface RemindersProps {
   reminders: Reminder[];
-  onAddReminder: (reminder: Omit<Reminder, 'id' | 'completed'>) => void;
+  onAddReminder: (reminder: Omit<Reminder, 'id' | 'completed'> | Omit<Reminder, 'id' | 'completed'>[]) => void;
   onToggleReminder: (id: number) => void;
   onDeleteReminder: (id: number) => void;
   theme: Theme;
@@ -15,6 +15,12 @@ const Reminders: React.FC<RemindersProps> = ({ reminders, onAddReminder, onToggl
   const [newReminderDateTime, setNewReminderDateTime] = useState('');
   const [newReminderSound, setNewReminderSound] = useState(Object.keys(notificationOptions.sounds)[0]);
   const [newReminderVibration, setNewReminderVibration] = useState(Object.keys(notificationOptions.vibrationPatterns)[0]);
+  
+  // Advanced Options State
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceType, setRecurrenceType] = useState<'daily' | 'weekly'>('daily');
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
+
   const [showForm, setShowForm] = useState(false);
   const [permission, setPermission] = useState(Notification.permission);
 
@@ -27,15 +33,68 @@ const Reminders: React.FC<RemindersProps> = ({ reminders, onAddReminder, onToggl
   const handleAddReminder = () => {
     if (newReminderText.trim() === '' || newReminderDateTime.trim() === '') return;
 
-    onAddReminder({
-      text: newReminderText,
-      dateTime: newReminderDateTime,
-      sound: newReminderSound,
-      vibration: newReminderVibration,
-    });
+    const startDate = new Date(newReminderDateTime);
+
+    if (isRecurring && recurrenceEndDate) {
+        const endDate = new Date(recurrenceEndDate);
+        // Set end date time to end of day to capture full day
+        endDate.setHours(23, 59, 59, 999);
+
+        if (endDate < startDate) {
+            alert('تاريخ الانتهاء يجب أن يكون بعد تاريخ البدء');
+            return;
+        }
+
+        const remindersToAdd: Omit<Reminder, 'id' | 'completed'>[] = [];
+        let currentDate = new Date(startDate);
+        const groupId = Date.now(); // Use this to theoretically link them
+
+        while (currentDate <= endDate) {
+            // Create ISO string preserving local time offset for datetime-local format if we were to edit, 
+            // but here we just need a string compatible with our Reminder type (which expects what datetime-local gives).
+            // However, the app uses `new Date(dateTime)` everywhere, so standard ISO string works fine, 
+            // OR we construct the specific format YYYY-MM-DDTHH:mm.
+            
+            // Let's manually construct to ensure consistency with input value format
+            const year = currentDate.getFullYear();
+            const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const day = String(currentDate.getDate()).padStart(2, '0');
+            const hours = String(currentDate.getHours()).padStart(2, '0');
+            const minutes = String(currentDate.getMinutes()).padStart(2, '0');
+            const formattedDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+            remindersToAdd.push({
+                text: newReminderText,
+                dateTime: formattedDateTime,
+                sound: newReminderSound,
+                vibration: newReminderVibration,
+                groupId: groupId
+            });
+
+            // Increment Date
+            if (recurrenceType === 'daily') {
+                currentDate.setDate(currentDate.getDate() + 1);
+            } else if (recurrenceType === 'weekly') {
+                currentDate.setDate(currentDate.getDate() + 7);
+            }
+        }
+
+        onAddReminder(remindersToAdd);
+
+    } else {
+        // Single Reminder
+        onAddReminder({
+            text: newReminderText,
+            dateTime: newReminderDateTime,
+            sound: newReminderSound,
+            vibration: newReminderVibration,
+        });
+    }
     
     setNewReminderText('');
     setNewReminderDateTime('');
+    setRecurrenceEndDate('');
+    setIsRecurring(false);
     setShowForm(false);
   };
   
@@ -81,12 +140,17 @@ const Reminders: React.FC<RemindersProps> = ({ reminders, onAddReminder, onToggl
             placeholder="اكتب نص التذكير..."
             className={`w-full bg-slate-700 p-3 rounded-md border border-slate-600 ${focusClasses}`}
           />
-          <input
-            type="datetime-local"
-            value={newReminderDateTime}
-            onChange={(e) => setNewReminderDateTime(e.target.value)}
-            className={`w-full bg-slate-700 p-3 rounded-md border border-slate-600 ${focusClasses}`}
-          />
+          
+          <div className="space-y-2">
+            <label className="text-slate-300 text-sm">وقت التذكير (أو بداية التكرار)</label>
+            <input
+                type="datetime-local"
+                value={newReminderDateTime}
+                onChange={(e) => setNewReminderDateTime(e.target.value)}
+                className={`w-full bg-slate-700 p-3 rounded-md border border-slate-600 ${focusClasses}`}
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <select
                 value={newReminderSound}
@@ -103,6 +167,50 @@ const Reminders: React.FC<RemindersProps> = ({ reminders, onAddReminder, onToggl
                 {Object.keys(notificationOptions.vibrationPatterns).map(pattern => <option key={pattern} value={pattern}>{pattern}</option>)}
             </select>
           </div>
+
+          {/* Advanced Options / Recurrence */}
+          <div className="border-t border-slate-700 pt-4 mt-2">
+            <div className="flex items-center mb-3">
+                <input 
+                    type="checkbox" 
+                    id="recurrenceToggle"
+                    checked={isRecurring} 
+                    onChange={(e) => setIsRecurring(e.target.checked)}
+                    className={`w-5 h-5 rounded ${focusClasses} text-sky-600 bg-slate-700 border-slate-600`}
+                />
+                <label htmlFor="recurrenceToggle" className="mr-2 text-slate-300 select-none cursor-pointer">
+                    تكرار التنبيه (نطاق زمني)
+                </label>
+            </div>
+
+            {isRecurring && (
+                <div className="bg-slate-700/50 p-3 rounded-md space-y-3 animate-fade-in">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1">تكرار كل</label>
+                            <select
+                                value={recurrenceType}
+                                onChange={(e) => setRecurrenceType(e.target.value as 'daily' | 'weekly')}
+                                className={`w-full bg-slate-700 p-2 rounded-md border border-slate-600 text-sm ${focusClasses}`}
+                            >
+                                <option value="daily">يومياً</option>
+                                <option value="weekly">أسبوعياً</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1">حتى تاريخ</label>
+                            <input
+                                type="date"
+                                value={recurrenceEndDate}
+                                onChange={(e) => setRecurrenceEndDate(e.target.value)}
+                                className={`w-full bg-slate-700 p-2 rounded-md border border-slate-600 text-sm ${focusClasses}`}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+          </div>
+
           <button
             onClick={handleAddReminder}
             className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md transition-colors duration-200"
@@ -127,6 +235,7 @@ const Reminders: React.FC<RemindersProps> = ({ reminders, onAddReminder, onToggl
               <div onClick={() => onToggleReminder(reminder.id)} className="cursor-pointer flex-grow">
                 <p className="font-semibold text-lg">{reminder.text}</p>
                 <p className={`text-sm ${theme.primaryText}`}>{formatDate(reminder.dateTime)}</p>
+                {reminder.groupId && <span className="text-xs bg-slate-700 px-2 py-0.5 rounded text-slate-400 mt-1 inline-block">تكرار</span>}
               </div>
               <button
                 onClick={() => onDeleteReminder(reminder.id)}

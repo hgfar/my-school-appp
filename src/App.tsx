@@ -148,9 +148,17 @@ const App: React.FC = () => {
         setCurrentUser(null);
     };
 
-    const handleAddReminder = (reminder: Omit<Reminder, 'id' | 'completed'>) => {
-        const newReminder = { ...reminder, id: Date.now(), completed: false };
-        setReminders(prev => [...prev, newReminder].sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()));
+    const handleAddReminder = (reminderOrReminders: Omit<Reminder, 'id' | 'completed'> | Omit<Reminder, 'id' | 'completed'>[]) => {
+        const remindersToAdd = Array.isArray(reminderOrReminders) ? reminderOrReminders : [reminderOrReminders];
+        const now = Date.now();
+        
+        const newReminders = remindersToAdd.map((r, index) => ({
+            ...r,
+            id: now + index,
+            completed: false
+        }));
+
+        setReminders(prev => [...prev, ...newReminders].sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()));
     };
 
     const handleToggleReminder = (id: number) => {

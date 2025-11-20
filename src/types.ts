@@ -7,6 +7,7 @@ export interface Reminder {
   sound: string;
   vibration: string;
   completed: boolean;
+  groupId?: number; // To identify reminders created as a batch/recurring
 }
 
 export interface ConvertedDate {
