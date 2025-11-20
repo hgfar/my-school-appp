@@ -50,12 +50,6 @@ const Reminders: React.FC<RemindersProps> = ({ reminders, onAddReminder, onToggl
         const groupId = Date.now(); // Use this to theoretically link them
 
         while (currentDate <= endDate) {
-            // Create ISO string preserving local time offset for datetime-local format if we were to edit, 
-            // but here we just need a string compatible with our Reminder type (which expects what datetime-local gives).
-            // However, the app uses `new Date(dateTime)` everywhere, so standard ISO string works fine, 
-            // OR we construct the specific format YYYY-MM-DDTHH:mm.
-            
-            // Let's manually construct to ensure consistency with input value format
             const year = currentDate.getFullYear();
             const month = String(currentDate.getMonth() + 1).padStart(2, '0');
             const day = String(currentDate.getDate()).padStart(2, '0');
