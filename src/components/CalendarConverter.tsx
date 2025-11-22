@@ -158,23 +158,54 @@ const CalendarConverter: React.FC<CalendarConverterProps> = ({ theme }) => {
         setDisplayDate(newDate);
     };
 
+    const changeDisplayYear = (offset: number) => {
+        const newDate = new Date(displayDate);
+        newDate.setFullYear(newDate.getFullYear() + offset);
+        setDisplayDate(newDate);
+    };
+
+    const jumpToToday = () => {
+        const today = new Date();
+        setDisplayDate(today);
+        handleDateSelect(today);
+    };
+
     const renderCalendarHeader = () => {
         const monthName = new Intl.DateTimeFormat('ar-EG', { month: 'long' }).format(displayDate);
         return (
-            <div className="flex justify-between items-center mb-4 px-2">
-                <button onClick={() => viewMode === 'month' ? changeDisplayMonth(-1) : changeDisplayWeek(-1)} className="p-1 hover:bg-slate-700 rounded">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                </button>
-                <h3 className={`text-lg font-bold ${theme.primaryText}`}>
-                    {monthName} {displayDate.getFullYear()}
-                </h3>
-                <button onClick={() => viewMode === 'month' ? changeDisplayMonth(1) : changeDisplayWeek(1)} className="p-1 hover:bg-slate-700 rounded">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                </button>
+            <div className="flex flex-col gap-2 mb-4 px-2">
+                {/* Month/Week Navigation */}
+                <div className="flex justify-between items-center">
+                    <button onClick={() => viewMode === 'month' ? changeDisplayMonth(-1) : changeDisplayWeek(-1)} className="p-1 hover:bg-slate-700 rounded text-slate-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                    
+                    <div className="flex items-center gap-2">
+                         <h3 className={`text-lg font-bold ${theme.primaryText}`}>
+                            {monthName}
+                        </h3>
+                    </div>
+
+                    <button onClick={() => viewMode === 'month' ? changeDisplayMonth(1) : changeDisplayWeek(1)} className="p-1 hover:bg-slate-700 rounded text-slate-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                </div>
+
+                {/* Year Navigation & Today */}
+                <div className="flex justify-between items-center bg-slate-900/30 rounded p-1">
+                    <button onClick={() => changeDisplayYear(-1)} className="text-xs text-slate-400 hover:text-white px-2">- سنة</button>
+                    
+                    <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-slate-200">{displayDate.getFullYear()}</span>
+                         <button onClick={jumpToToday} className="text-[10px] bg-slate-700 px-2 py-0.5 rounded text-sky-400 hover:text-sky-300">اليوم</button>
+                    </div>
+
+                    <button onClick={() => changeDisplayYear(1)} className="text-xs text-slate-400 hover:text-white px-2">+ سنة</button>
+                </div>
             </div>
         );
     };

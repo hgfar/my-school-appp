@@ -1,7 +1,7 @@
 
 // sw.js (Stale-while-revalidate)
 
-const CACHE_NAME = 'school-schedule-pwa-cache-v38';
+const CACHE_NAME = 'school-schedule-pwa-cache-v40';
 const urlsToCache = [
   '/',
   '/index.html',
