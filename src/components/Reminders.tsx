@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { Reminder, Theme } from '../types';
 import { notificationOptions } from '../assets/notificationOptions';
@@ -18,8 +19,14 @@ const Reminders: React.FC<RemindersProps> = ({ reminders, onAddReminder, onToggl
   
   // Advanced Options State
   const [isRecurring, setIsRecurring] = useState(false);
-  const [recurrenceType, setRecurrenceType] = useState<'daily' | 'weekly'>('daily');
+  const [recurrenceType, setRecurrenceType] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
+
+  // Monthly Specific Options
+  const [monthlyOption, setMonthlyOption] = useState<'specific_date' | 'relative'>('specific_date');
+  const [monthDay, setMonthDay] = useState(1); // 1 - 31
+  const [weekRank, setWeekRank] = useState(1); // 1 (First), 2 (Second), 3 (Third), 4 (Fourth), 5 (Last)
+  const [weekDay, setWeekDay] = useState(0); // 0 (Sunday) - 6 (Saturday)
 
   const [showForm, setShowForm] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -47,7 +54,6 @@ const Reminders: React.FC<RemindersProps> = ({ reminders, onAddReminder, onToggl
         }
 
         const endDate = new Date(recurrenceEndDate);
-        // Set end date time to end of day to capture full day
         endDate.setHours(23, 59, 59, 999);
 
         if (endDate < startDate) {
@@ -57,33 +63,118 @@ const Reminders: React.FC<RemindersProps> = ({ reminders, onAddReminder, onToggl
 
         const remindersToAdd: Omit<Reminder, 'id' | 'completed'>[] = [];
         let currentDate = new Date(startDate);
-        const groupId = Date.now(); // Use this to theoretically link them
+        const groupId = Date.now();
 
-        // Safety break to prevent infinite loops if something goes wrong
         let safetyCounter = 0;
-        while (currentDate <= endDate && safetyCounter < 365) {
-            const year = currentDate.getFullYear();
-            const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-            const day = String(currentDate.getDate()).padStart(2, '0');
-            const hours = String(currentDate.getHours()).padStart(2, '0');
-            const minutes = String(currentDate.getMinutes()).padStart(2, '0');
-            const formattedDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
 
-            remindersToAdd.push({
-                text: newReminderText,
-                dateTime: formattedDateTime,
-                sound: newReminderSound,
-                vibration: newReminderVibration,
-                groupId: groupId
-            });
+        if (recurrenceType === 'monthly') {
+            // Monthly Logic
+            // Start iteration from the month of the start date
+            let iteratorDate = new Date(startDate);
+            
+            // Reset to first of month to ease calculations, preserving time from input
+            iteratorDate.setDate(1); 
+            
+            while (iteratorDate <= endDate && safetyCounter < 60) { // Limit to 5 years (60 months) for safety
+                let targetDate = new Date(iteratorDate);
+                const year = targetDate.getFullYear();
+                const month = targetDate.getMonth();
 
-            // Increment Date
-            if (recurrenceType === 'daily') {
-                currentDate.setDate(currentDate.getDate() + 1);
-            } else if (recurrenceType === 'weekly') {
-                currentDate.setDate(currentDate.getDate() + 7);
+                if (monthlyOption === 'specific_date') {
+                    // e.g., The 15th of every month
+                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+                    // Clamp date (e.g. if 31st selected, Feb becomes 28th/29th)
+                    const actualDay = Math.min(monthDay, daysInMonth);
+                    targetDate.setDate(actualDay);
+                } else {
+                    // e.g., The 2nd Tuesday
+                    // Find the first occurrence of the weekday in this month
+                    let firstDayOfMonth = new Date(year, month, 1);
+                    let dayOfWeek = firstDayOfMonth.getDay(); // 0-6
+                    
+                    // Calculate offset to get to the first target weekday
+                    let diff = weekDay - dayOfWeek;
+                    if (diff < 0) diff += 7;
+                    
+                    let firstOccurrence = 1 + diff;
+                    
+                    if (weekRank === 5) {
+                        // "Last" occurrence logic
+                        // Find dates: firstOccurrence, +7, +7, +7... until next month
+                        let tempDay = firstOccurrence;
+                        let lastValidDay = tempDay;
+                        const daysInMonth = new Date(year, month + 1, 0).getDate();
+                        
+                        while(tempDay + 7 <= daysInMonth) {
+                            tempDay += 7;
+                            lastValidDay = tempDay;
+                        }
+                        targetDate.setDate(lastValidDay);
+                    } else {
+                        // 1st, 2nd, 3rd, 4th
+                        let targetDay = firstOccurrence + (weekRank - 1) * 7;
+                        const daysInMonth = new Date(year, month + 1, 0).getDate();
+                        
+                        // If the computed date (e.g. 5th Friday) is outside the month, skip this month
+                        if (targetDay > daysInMonth) {
+                            targetDate = new Date(0); // Invalid date to filter out later
+                        } else {
+                            targetDate.setDate(targetDay);
+                        }
+                    }
+                }
+
+                // Restore original time
+                targetDate.setHours(startDate.getHours(), startDate.getMinutes(), 0, 0);
+
+                // Only add if it's within the requested range (Start/End)
+                // Note: startDate comparison ensures we don't add a "past" recurrence if the calculated date in the start month is earlier than the start time
+                if (targetDate.getTime() > 0 && targetDate >= startDate && targetDate <= endDate) {
+                    const y = targetDate.getFullYear();
+                    const m = String(targetDate.getMonth() + 1).padStart(2, '0');
+                    const d = String(targetDate.getDate()).padStart(2, '0');
+                    const h = String(targetDate.getHours()).padStart(2, '0');
+                    const min = String(targetDate.getMinutes()).padStart(2, '0');
+                    
+                    remindersToAdd.push({
+                        text: newReminderText,
+                        dateTime: `${y}-${m}-${d}T${h}:${min}`,
+                        sound: newReminderSound,
+                        vibration: newReminderVibration,
+                        groupId: groupId
+                    });
+                }
+
+                // Move to next month
+                iteratorDate.setMonth(iteratorDate.getMonth() + 1);
+                safetyCounter++;
             }
-            safetyCounter++;
+
+        } else {
+            // Daily / Weekly Logic
+            while (currentDate <= endDate && safetyCounter < 365) {
+                const year = currentDate.getFullYear();
+                const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+                const day = String(currentDate.getDate()).padStart(2, '0');
+                const hours = String(currentDate.getHours()).padStart(2, '0');
+                const minutes = String(currentDate.getMinutes()).padStart(2, '0');
+                const formattedDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+    
+                remindersToAdd.push({
+                    text: newReminderText,
+                    dateTime: formattedDateTime,
+                    sound: newReminderSound,
+                    vibration: newReminderVibration,
+                    groupId: groupId
+                });
+    
+                if (recurrenceType === 'daily') {
+                    currentDate.setDate(currentDate.getDate() + 1);
+                } else if (recurrenceType === 'weekly') {
+                    currentDate.setDate(currentDate.getDate() + 7);
+                }
+                safetyCounter++;
+            }
         }
 
         onAddReminder(remindersToAdd);
@@ -116,6 +207,15 @@ const Reminders: React.FC<RemindersProps> = ({ reminders, onAddReminder, onToggl
   };
 
   const focusClasses = `focus:ring-2 ${theme.ring} focus:outline-none`;
+
+  const weekDays = [
+      { val: 0, label: 'الأحد' }, { val: 1, label: 'الاثنين' }, { val: 2, label: 'الثلاثاء' },
+      { val: 3, label: 'الأربعاء' }, { val: 4, label: 'الخميس' }, { val: 5, label: 'الجمعة' }, { val: 6, label: 'السبت' }
+  ];
+
+  const weekRanks = [
+      { val: 1, label: 'الأول' }, { val: 2, label: 'الثاني' }, { val: 3, label: 'الثالث' }, { val: 4, label: 'الرابع' }, { val: 5, label: 'الأخير' }
+  ];
 
   return (
     <div className="space-y-6">
@@ -200,24 +300,89 @@ const Reminders: React.FC<RemindersProps> = ({ reminders, onAddReminder, onToggl
                     className={`w-5 h-5 rounded ${focusClasses} text-sky-600 bg-slate-700 border-slate-600 focus:ring-offset-slate-800`}
                 />
                 <label htmlFor="recurrenceToggle" className="mr-2 text-slate-300 select-none cursor-pointer">
-                    تكرار التنبيه (نطاق زمني)
+                    خيارات متقدمة / تكرار
                 </label>
             </div>
 
             {isRecurring && (
                 <div className="bg-slate-700/50 p-3 rounded-md space-y-3 animate-fade-in">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-3">
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">تكرار كل</label>
                             <select
                                 value={recurrenceType}
-                                onChange={(e) => setRecurrenceType(e.target.value as 'daily' | 'weekly')}
+                                onChange={(e) => setRecurrenceType(e.target.value as 'daily' | 'weekly' | 'monthly')}
                                 className={`w-full bg-slate-700 p-2 rounded-md border border-slate-600 text-sm ${focusClasses}`}
                             >
                                 <option value="daily">يومياً</option>
                                 <option value="weekly">أسبوعياً</option>
+                                <option value="monthly">شهرياً</option>
                             </select>
                         </div>
+
+                        {/* Monthly Sub-options */}
+                        {recurrenceType === 'monthly' && (
+                            <div className="bg-slate-800/50 p-2 rounded border border-slate-600/50 space-y-2">
+                                <div className="flex gap-4 mb-2">
+                                    <label className="flex items-center cursor-pointer">
+                                        <input 
+                                            type="radio" 
+                                            name="monthlyOption" 
+                                            value="specific_date"
+                                            checked={monthlyOption === 'specific_date'}
+                                            onChange={() => setMonthlyOption('specific_date')}
+                                            className="ml-2"
+                                        />
+                                        <span className="text-xs">تاريخ محدد</span>
+                                    </label>
+                                    <label className="flex items-center cursor-pointer">
+                                        <input 
+                                            type="radio" 
+                                            name="monthlyOption" 
+                                            value="relative"
+                                            checked={monthlyOption === 'relative'}
+                                            onChange={() => setMonthlyOption('relative')}
+                                            className="ml-2"
+                                        />
+                                        <span className="text-xs">يوم محدد (مثلاً: ثاني جمعة)</span>
+                                    </label>
+                                </div>
+
+                                {monthlyOption === 'specific_date' ? (
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs text-slate-400">يوم</span>
+                                        <input 
+                                            type="number" 
+                                            min="1" 
+                                            max="31"
+                                            value={monthDay}
+                                            onChange={(e) => setMonthDay(parseInt(e.target.value))}
+                                            className="w-20 bg-slate-700 p-1 text-center rounded border border-slate-600 text-sm"
+                                        />
+                                        <span className="text-xs text-slate-400">من كل شهر</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex gap-2">
+                                        <select 
+                                            value={weekRank}
+                                            onChange={(e) => setWeekRank(parseInt(e.target.value))}
+                                            className="bg-slate-700 p-1 rounded border border-slate-600 text-sm flex-1"
+                                        >
+                                            {weekRanks.map(wr => <option key={wr.val} value={wr.val}>{wr.label}</option>)}
+                                        </select>
+                                        <select 
+                                            value={weekDay}
+                                            onChange={(e) => setWeekDay(parseInt(e.target.value))}
+                                            className="bg-slate-700 p-1 rounded border border-slate-600 text-sm flex-1"
+                                        >
+                                            {weekDays.map(wd => <option key={wd.val} value={wd.val}>{wd.label}</option>)}
+                                        </select>
+                                        <span className="text-xs text-slate-400 flex items-center">من كل شهر</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">حتى تاريخ</label>
                             <input
