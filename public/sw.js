@@ -1,7 +1,7 @@
 
 // sw.js (Stale-while-revalidate)
 
-const CACHE_NAME = 'school-schedule-pwa-cache-v40';
+const CACHE_NAME = 'school-schedule-pwa-cache-v45-clean';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -40,6 +40,7 @@ self.addEventListener('fetch', event => {
       return cache.match(event.request).then(response => {
         const fetchPromise = fetch(event.request).then(networkResponse => {
            if (networkResponse && networkResponse.status === 200) {
+              // Don't cache API calls
               if (!event.request.url.includes('generativelanguage')) {
                  cache.put(event.request, networkResponse.clone());
               }
