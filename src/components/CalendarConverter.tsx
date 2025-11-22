@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { getTodaysHijriDate, convertGregorianToHijri, convertHijriToGregorian } from '../services/geminiService';
 import type { ConvertedDate, Theme } from '../types';
@@ -54,15 +55,19 @@ const CalendarConverter: React.FC<CalendarConverterProps> = ({ theme }) => {
     const [todaysHijri, setTodaysHijri] = useState<ConvertedDate | null>(null);
     const [hijriLoading, setHijriLoading] = useState(true);
 
+    // Inputs
     const [gregorianInput, setGregorianInput] = useState({ year: '', month: '', day: '' });
     const [hijriInput, setHijriInput] = useState({ year: '', month: '', day: '' });
 
+    // Visual Calendar State
+    const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
+    const [displayDate, setDisplayDate] = useState(new Date()); // For navigation
+    
+    // Results
     const [g2hResult, setG2hResult] = useState<ConvertedDate | null>(null);
     const [h2gResult, setH2gResult] = useState<ConvertedDate | null>(null);
-
     const [g2hLoading, setG2hLoading] = useState(false);
     const [h2gLoading, setH2gLoading] = useState(false);
-
     const [g2hError, setG2hError] = useState<string | null>(null);
     const [h2gError, setH2gError] = useState<string | null>(null);
 
@@ -79,6 +84,14 @@ const CalendarConverter: React.FC<CalendarConverterProps> = ({ theme }) => {
         };
         
         const today = new Date();
+        
+        // Initial Gregorian Input population
+        setGregorianInput({
+            year: today.getFullYear().toString(),
+            month: (today.getMonth() + 1).toString(),
+            day: today.getDate().toString()
+        });
+
         const gregorianFormatted = new Intl.DateTimeFormat('ar-EG-u-nu-latn', {
             weekday: 'long',
             year: 'numeric',
@@ -122,6 +135,143 @@ const CalendarConverter: React.FC<CalendarConverterProps> = ({ theme }) => {
         }
     };
 
+    // --- Visual Calendar Logic ---
+
+    const handleDateSelect = (date: Date) => {
+        const y = date.getFullYear().toString();
+        const m = (date.getMonth() + 1).toString();
+        const d = date.getDate().toString();
+        
+        setGregorianInput({ year: y, month: m, day: d });
+        setDisplayDate(date); // Sync view
+    };
+
+    const changeDisplayMonth = (offset: number) => {
+        const newDate = new Date(displayDate);
+        newDate.setMonth(newDate.getMonth() + offset);
+        setDisplayDate(newDate);
+    };
+
+    const changeDisplayWeek = (offset: number) => {
+        const newDate = new Date(displayDate);
+        newDate.setDate(newDate.getDate() + (offset * 7));
+        setDisplayDate(newDate);
+    };
+
+    const renderCalendarHeader = () => {
+        const monthName = new Intl.DateTimeFormat('ar-EG', { month: 'long' }).format(displayDate);
+        return (
+            <div className="flex justify-between items-center mb-4 px-2">
+                <button onClick={() => viewMode === 'month' ? changeDisplayMonth(-1) : changeDisplayWeek(-1)} className="p-1 hover:bg-slate-700 rounded">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+                <h3 className={`text-lg font-bold ${theme.primaryText}`}>
+                    {monthName} {displayDate.getFullYear()}
+                </h3>
+                <button onClick={() => viewMode === 'month' ? changeDisplayMonth(1) : changeDisplayWeek(1)} className="p-1 hover:bg-slate-700 rounded">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                </button>
+            </div>
+        );
+    };
+
+    const renderMonthView = () => {
+        const year = displayDate.getFullYear();
+        const month = displayDate.getMonth();
+        
+        const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0 (Sun) - 6 (Sat)
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        
+        // Adjust for Sunday start (0)
+        const startingSlot = firstDayOfMonth; 
+        
+        const days = [];
+        for (let i = 0; i < startingSlot; i++) {
+            days.push(<div key={`empty-${i}`} className="h-10"></div>);
+        }
+        
+        for (let d = 1; d <= daysInMonth; d++) {
+            const isSelected = 
+                gregorianInput.year === year.toString() && 
+                gregorianInput.month === (month + 1).toString() && 
+                gregorianInput.day === d.toString();
+            
+            const isToday = 
+                new Date().getDate() === d && 
+                new Date().getMonth() === month && 
+                new Date().getFullYear() === year;
+
+            days.push(
+                <button 
+                    key={d} 
+                    onClick={() => handleDateSelect(new Date(year, month, d))}
+                    className={`h-10 w-10 mx-auto flex items-center justify-center rounded-full transition-all text-sm
+                        ${isSelected ? `${theme.buttonBg} text-white font-bold shadow-md scale-110` : 'hover:bg-slate-700 text-slate-300'}
+                        ${isToday && !isSelected ? 'border border-slate-500' : ''}
+                    `}
+                >
+                    {d}
+                </button>
+            );
+        }
+
+        return (
+            <div className="grid grid-cols-7 gap-1 mb-2 animate-fade-in">
+                {['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'].map(day => (
+                    <div key={day} className="text-center text-xs text-slate-500 font-medium py-2">{day}</div>
+                ))}
+                {days}
+            </div>
+        );
+    };
+
+    const renderWeekView = () => {
+        // Logic to show the week containing the displayDate
+        const startOfWeek = new Date(displayDate);
+        const day = startOfWeek.getDay(); // 0 (Sun)
+        const diff = startOfWeek.getDate() - day;
+        startOfWeek.setDate(diff); // Set to Sunday of this week
+
+        const weekDays = [];
+        for (let i = 0; i < 7; i++) {
+            const current = new Date(startOfWeek);
+            current.setDate(startOfWeek.getDate() + i);
+            
+            const d = current.getDate();
+            const m = current.getMonth();
+            const y = current.getFullYear();
+
+            const isSelected = 
+                gregorianInput.year === y.toString() && 
+                gregorianInput.month === (m + 1).toString() && 
+                gregorianInput.day === d.toString();
+
+            const dayName = new Intl.DateTimeFormat('ar-EG', { weekday: 'short' }).format(current);
+
+            weekDays.push(
+                <button 
+                    key={i}
+                    onClick={() => handleDateSelect(new Date(y, m, d))}
+                    className={`flex flex-col items-center justify-center p-2 rounded-lg flex-1 transition-all
+                         ${isSelected ? `${theme.buttonBg} text-white shadow-md` : 'bg-slate-700/50 hover:bg-slate-700'}
+                    `}
+                >
+                    <span className={`text-xs mb-1 ${isSelected ? 'text-white' : 'text-slate-400'}`}>{dayName}</span>
+                    <span className={`font-bold text-lg ${isSelected ? 'text-white' : 'text-slate-200'}`}>{d}</span>
+                </button>
+            );
+        }
+        return (
+            <div className="flex gap-2 justify-between mb-2 animate-fade-in">
+                {weekDays}
+            </div>
+        );
+    };
+
     return (
         <div className="space-y-8">
             <div className="bg-slate-800 p-4 rounded-lg shadow-lg text-center">
@@ -137,11 +287,44 @@ const CalendarConverter: React.FC<CalendarConverterProps> = ({ theme }) => {
             {/* Gregorian to Hijri */}
             <div className="bg-slate-800 p-4 rounded-lg shadow-lg">
                 <h3 className={`text-md font-semibold mb-3 text-center ${theme.primaryText}`}>التحويل من ميلادي إلى هجري</h3>
-                <div className="grid grid-cols-3 gap-2">
-                    <input type="number" placeholder="يوم" value={gregorianInput.day} onChange={e => setGregorianInput({...gregorianInput, day: e.target.value})} className="w-full bg-slate-700 p-2 rounded-md border border-slate-600 text-center focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500" />
-                    <input type="number" placeholder="شهر" value={gregorianInput.month} onChange={e => setGregorianInput({...gregorianInput, month: e.target.value})} className="w-full bg-slate-700 p-2 rounded-md border border-slate-600 text-center focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500" />
-                    <input type="number" placeholder="سنة" value={gregorianInput.year} onChange={e => setGregorianInput({...gregorianInput, year: e.target.value})} className="w-full bg-slate-700 p-2 rounded-md border border-slate-600 text-center focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500" />
+                
+                {/* View Toggle */}
+                <div className="flex justify-center bg-slate-900/50 p-1 rounded-lg mb-4 w-max mx-auto">
+                    <button 
+                        onClick={() => setViewMode('month')}
+                        className={`px-4 py-1 rounded-md text-sm transition-colors ${viewMode === 'month' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
+                    >
+                        شهري
+                    </button>
+                    <button 
+                        onClick={() => setViewMode('week')}
+                        className={`px-4 py-1 rounded-md text-sm transition-colors ${viewMode === 'week' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
+                    >
+                        أسبوعي
+                    </button>
                 </div>
+
+                {renderCalendarHeader()}
+                
+                <div className="bg-slate-900/30 rounded-lg p-2 mb-4">
+                    {viewMode === 'month' ? renderMonthView() : renderWeekView()}
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 mb-4 opacity-70 hover:opacity-100 transition-opacity">
+                    <div className="relative">
+                        <label className="absolute -top-2 right-2 bg-slate-800 px-1 text-[10px] text-slate-400">يوم</label>
+                        <input type="number" value={gregorianInput.day} onChange={e => setGregorianInput({...gregorianInput, day: e.target.value})} className="w-full bg-slate-700 p-2 rounded-md border border-slate-600 text-center focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500" />
+                    </div>
+                    <div className="relative">
+                        <label className="absolute -top-2 right-2 bg-slate-800 px-1 text-[10px] text-slate-400">شهر</label>
+                        <input type="number" value={gregorianInput.month} onChange={e => setGregorianInput({...gregorianInput, month: e.target.value})} className="w-full bg-slate-700 p-2 rounded-md border border-slate-600 text-center focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500" />
+                    </div>
+                    <div className="relative">
+                        <label className="absolute -top-2 right-2 bg-slate-800 px-1 text-[10px] text-slate-400">سنة</label>
+                        <input type="number" value={gregorianInput.year} onChange={e => setGregorianInput({...gregorianInput, year: e.target.value})} className="w-full bg-slate-700 p-2 rounded-md border border-slate-600 text-center focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500" />
+                    </div>
+                </div>
+
                 <button onClick={handleG2HConvert} disabled={g2hLoading} className={`w-full mt-3 ${theme.buttonBg} ${theme.buttonHoverBg} text-white font-bold py-2 px-4 rounded-md transition-colors disabled:bg-slate-600`}>تحويل</button>
                 <ResultDisplay date={g2hResult} loading={g2hLoading} error={g2hError} theme={theme} />
             </div>

@@ -1,7 +1,7 @@
 
 // sw.js (Stale-while-revalidate)
 
-const CACHE_NAME = 'school-schedule-pwa-cache-v36';
+const CACHE_NAME = 'school-schedule-pwa-cache-v38';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -16,8 +16,10 @@ const urlsToCache = [
   '/icons/icon-512x512.png',
 ];
 
-// On install, cache the app shell
+// On install, cache the app shell and force activation
 self.addEventListener('install', event => {
+  // Skip waiting means this SW takes over immediately, kicking out the old one
+  self.skipWaiting(); 
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
@@ -29,7 +31,6 @@ self.addEventListener('install', event => {
 
 // On fetch, use stale-while-revalidate strategy
 self.addEventListener('fetch', event => {
-  // We only want to cache GET requests.
   if (event.request.method !== 'GET') {
     return;
   }
@@ -38,10 +39,7 @@ self.addEventListener('fetch', event => {
     caches.open(CACHE_NAME).then(cache => {
       return cache.match(event.request).then(response => {
         const fetchPromise = fetch(event.request).then(networkResponse => {
-          // If the request is for a resource we want to cache (e.g. not an API call)
-          // and the response is valid, update the cache.
            if (networkResponse && networkResponse.status === 200) {
-              // We don't cache API calls to Gemini
               if (!event.request.url.includes('generativelanguage')) {
                  cache.put(event.request, networkResponse.clone());
               }
@@ -51,23 +49,26 @@ self.addEventListener('fetch', event => {
             console.error('Fetch failed; returning from cache if available.', err);
         });
 
-        // Return the cached response immediately if available, then update the cache in the background.
         return response || fetchPromise;
       });
     })
   );
 });
 
-// On activate, clean up old caches
+// On activate, clean up old caches and claim clients immediately
 self.addEventListener('activate', event => {
   const currentCaches = [CACHE_NAME];
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return cacheNames.filter(cacheName => !currentCaches.includes(cacheName));
-    }).then(cachesToDelete => {
-      return Promise.all(cachesToDelete.map(cacheToDelete => {
-        return caches.delete(cacheToDelete);
-      }));
-    })
+    Promise.all([
+      // Claim clients so the page is controlled by the new SW immediately
+      self.clients.claim(),
+      caches.keys().then(cacheNames => {
+        return cacheNames.filter(cacheName => !currentCaches.includes(cacheName));
+      }).then(cachesToDelete => {
+        return Promise.all(cachesToDelete.map(cacheToDelete => {
+          return caches.delete(cacheToDelete);
+        }));
+      })
+    ])
   );
 });
