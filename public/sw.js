@@ -1,7 +1,7 @@
 
 // sw.js (Stale-while-revalidate)
 
-const CACHE_NAME = 'school-schedule-pwa-cache-v49-clean';
+const CACHE_NAME = 'school-schedule-pwa-cache-v101-FORCE';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -67,6 +67,7 @@ self.addEventListener('activate', event => {
         return cacheNames.filter(cacheName => !currentCaches.includes(cacheName));
       }).then(cachesToDelete => {
         return Promise.all(cachesToDelete.map(cacheToDelete => {
+          console.log('Deleting old cache:', cacheToDelete);
           return caches.delete(cacheToDelete);
         }));
       })
