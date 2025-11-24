@@ -1,7 +1,7 @@
 
 // sw.js (Stale-while-revalidate)
 
-const CACHE_NAME = 'school-schedule-pwa-cache-v205-ABSOLUTE';
+const CACHE_NAME = 'school-schedule-pwa-cache-v206-FIXED';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -73,4 +73,4 @@ self.addEventListener('activate', event => {
       })
     ])
   );
-});
+a});
