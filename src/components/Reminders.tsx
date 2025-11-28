@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import type { Reminder, Theme } from '../types';
 import { notificationOptions } from '../assets/notificationOptions';
@@ -31,6 +30,9 @@ const Reminders: React.FC<RemindersProps> = ({ reminders, onAddReminder, onToggl
   const [showForm, setShowForm] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [permission, setPermission] = useState(Notification.permission);
+
+  // State for delete confirmation
+  const [reminderToDelete, setReminderToDelete] = useState<number | null>(null);
 
   useEffect(() => {
     if (Notification.permission === 'default') {
@@ -204,6 +206,21 @@ const Reminders: React.FC<RemindersProps> = ({ reminders, onAddReminder, onToggl
     return new Intl.DateTimeFormat('ar-SA-u-nu-latn', {
       year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
     }).format(date);
+  };
+
+  const handleDeleteClick = (id: number) => {
+    setReminderToDelete(id);
+  };
+
+  const confirmDelete = () => {
+    if (reminderToDelete !== null) {
+      onDeleteReminder(reminderToDelete);
+      setReminderToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setReminderToDelete(null);
   };
 
   const focusClasses = `focus:ring-2 ${theme.ring} focus:outline-none`;
@@ -426,7 +443,7 @@ const Reminders: React.FC<RemindersProps> = ({ reminders, onAddReminder, onToggl
                 <p className={`text-sm ${theme.primaryText}`}>{formatDate(reminder.dateTime)}</p>
               </div>
               <button
-                onClick={() => onDeleteReminder(reminder.id)}
+                onClick={() => handleDeleteClick(reminder.id)}
                 className="text-red-500 hover:text-red-400 ml-4 p-2 rounded-full transition-colors"
                 title="حذف"
               >
@@ -438,6 +455,31 @@ const Reminders: React.FC<RemindersProps> = ({ reminders, onAddReminder, onToggl
           </div>
         ))}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {reminderToDelete !== null && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-30" onClick={cancelDelete}>
+            <div className="bg-slate-800 p-6 rounded-lg shadow-2xl space-y-4 w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
+                <h3 className="text-xl font-bold text-red-500">تأكيد الحذف</h3>
+                <p className="text-slate-300">هل أنت متأكد من رغبتك في حذف هذا التذكير؟</p>
+                <div className="flex gap-4 mt-4">
+                    <button
+                        onClick={cancelDelete}
+                        className="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-md"
+                    >
+                        إلغاء
+                    </button>
+                    <button
+                        onClick={confirmDelete}
+                        className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md"
+                    >
+                        نعم, احذف
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
+
     </div>
   );
 };
